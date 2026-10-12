@@ -243,6 +243,119 @@ const fetchFlwTransaction = async (transactionId, txRef) => {
 };
 
 // ─────────────────────────────────────────────────────────────
+// WEBHOOK CAMPER-RESOLUTION HELPERS
+//
+// The frontend callback carries a JWT, so camper identity is trivial.
+// The server-to-server webhook carries NO JWT, so identity must be
+// recovered from the (verified) Flutterwave payload with layered
+// fallbacks. Each step is best-effort; a single mismatched field
+// must never block the whole webhook.
+// ─────────────────────────────────────────────────────────────
+
+// Escape user-controlled text before embedding it in a RegExp.
+const escapeRegExp = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+// Flutterwave `meta` arrives in different shapes depending on the
+// integration (inline checkout object vs. array of name/value pairs).
+// Normalise every shape to a plain { camper_id?, camperId? } lookup.
+const readMetaCamperId = (meta) => {
+  if (!meta) return null;
+  if (typeof meta === "object" && !Array.isArray(meta)) {
+    return meta.camper_id || meta.camperId || meta.CAMPER_ID || null;
+  }
+  if (Array.isArray(meta)) {
+    for (const entry of meta) {
+      const k = String(entry?.metaname || entry?.name || "").toLowerCase();
+      if (k === "camper_id" || k === "camperid" || k === "camper-id") {
+        return entry?.metavalue ?? entry?.value ?? null;
+      }
+    }
+  }
+  return null;
+};
+
+// Our merchant references embed the camper id:
+//   backend /initiate : `YC-<camperId>-<timestamp>`
+//   frontend checkout : `UBC-<camperId>-<timestamp>` (current live format)
+// Either prefix is accepted; the id is validated as an ObjectId later.
+const parseCamperIdFromRef = (txRef) => {
+  if (!txRef) return null;
+  const m = String(txRef).match(/^(?:YC|UBC)-([a-fA-F0-9]{24})-\d+$/);
+  return m ? m[1] : null;
+};
+
+// Normalise a phone number to its last 10 digits so that
+// "+234 805…", "234805…", "0805…" and "805…" all compare equal.
+const phoneDigits = (p) => String(p || "").replace(/\D/g, "");
+const phoneLast10 = (p) => {
+  const d = phoneDigits(p).replace(/^234/, "").replace(/^0+/, "");
+  return d.slice(-10);
+};
+
+// Full webhook camper-resolution chain. Returns
+// `{ camperId, via }` or `{ camperId: null, via: null }`.
+// `via` names the winning strategy for observability.
+const resolveWebhookCamper = async ({ requestMeta, flwData, txRef }) => {
+  // ① meta from the raw webhook body (what the checkout sent)
+  let camperId = readMetaCamperId(requestMeta);
+  if (camperId) return { camperId: String(camperId), via: "request-meta" };
+
+  // ② meta echoed inside the VERIFIED Flutterwave response (trustworthy)
+  camperId = readMetaCamperId(flwData?.data?.meta);
+  if (camperId) return { camperId: String(camperId), via: "verified-meta" };
+
+  // ③ camper id embedded in our own merchant reference (YC- or UBC-)
+  camperId = parseCamperIdFromRef(txRef);
+  if (camperId) {
+    const exists = await YCUser.exists({ _id: camperId });
+    if (exists) return { camperId, via: "tx-ref" };
+  }
+
+  const customer = flwData?.data?.customer || {};
+
+  // ④ email lookup — schema stores lowercase, so normalise first
+  if (customer.email) {
+    const email = String(customer.email).trim().toLowerCase();
+    if (email) {
+      const emailMatch = await YCUser.findOne({ email }).select("_id");
+      if (emailMatch)
+        return { camperId: emailMatch._id.toString(), via: "email" };
+    }
+  }
+
+  // ⑤ phone lookup — compare last-10-digits so formatting never blocks us
+  const flwPhone10 = phoneLast10(customer.phone_number);
+  if (flwPhone10 && flwPhone10.length === 10) {
+    const candidates = await YCUser.find({
+      phone: { $exists: true, $ne: null },
+    })
+      .select("_id phone")
+      .lean();
+    const hit = candidates.find((c) => phoneLast10(c.phone) === flwPhone10);
+    if (hit) return { camperId: hit._id.toString(), via: "phone" };
+  }
+
+  // ⑥ name fallback — escaped first+last token match (last resort)
+  if (customer.name) {
+    const tokens = String(customer.name).trim().split(/\s+/).filter(Boolean);
+    if (tokens.length >= 2) {
+      const first = escapeRegExp(tokens[0]);
+      const last = escapeRegExp(tokens[tokens.length - 1]);
+      const nameMatch = await YCUser.findOne({
+        $or: [
+          { name: new RegExp(`^${first}.*${last}$`, "i") },
+          { name: new RegExp(`^${last}.*${first}$`, "i") },
+        ],
+      }).select("_id");
+      if (nameMatch)
+        return { camperId: nameMatch._id.toString(), via: "name" };
+    }
+  }
+
+  return { camperId: null, via: null };
+};
+
+// ─────────────────────────────────────────────────────────────
 // 2. VERIFY CAMP PAYMENT
 //    POST /api/ycpayment/verify
 //
@@ -265,22 +378,23 @@ const verifyPayment = async (req, res, next) => {
     let transactionId;
     let txRef;
     let camperId;
+    let requestMeta = null;
 
     if (isWebhook) {
       const data = body.data || body;
 
-      transactionId = data.id?.toString();
-      txRef = data.tx_ref;
+      // FLW transaction id may arrive as `id` (webhook) or
+      // `transaction_id` (some event shapes) — accept both.
+      transactionId = (data.id ?? data.transaction_id)?.toString();
+      txRef = data.tx_ref || data.txRef;
+      requestMeta = data.meta ?? null;
 
-      // Guard 1: meta.camper_id (set by us at initiation — trustworthy)
-      if (data.meta?.camper_id) {
-        camperId = data.meta.camper_id;
-      }
-
-      // Guard 2: meta.camperId (alternate casing fallback)
-      if (!camperId && data.meta?.camperId) {
-        camperId = data.meta.camperId;
-      }
+      // Fast path: meta.camper_id when Flutterwave echoes it.
+      // NOT required — the full fallback chain runs after the
+      // server-to-server verification below, so a missing meta
+      // must never throw here.
+      camperId = readMetaCamperId(requestMeta);
+      if (camperId) camperId = String(camperId);
     } else {
       // Callback path: camper identity comes from the verified JWT,
       // never from the request body.
@@ -290,12 +404,30 @@ const verifyPayment = async (req, res, next) => {
     }
 
     if (!transactionId || !txRef) {
+      // A webhook without identifiers is FLW's problem, not ours —
+      // answer 200 so Flutterwave stops retrying a payload we can
+      // never resolve. The callback path still throws so the
+      // frontend can surface the error to the camper.
+      if (isWebhook) {
+        console.error(
+          `[YC WEBHOOK] Unresolvable payload (no id/tx_ref). event=${body?.event || "unknown"}`
+        );
+        return res.status(200).json({
+          success: false,
+          message: "Payload carried no transaction identifiers",
+          actionable: false,
+        });
+      }
       const err = new Error("Incomplete transaction data");
       err.statusCode = 400;
       throw err;
     }
 
-    if (!camperId) {
+    // NOTE: no `if (!camperId) throw` here. The webhook has no JWT,
+    // so identity is resolved AFTER verification from the verified
+    // Flutterwave payload (meta → tx-ref → email → phone → name).
+    // Only the JWT callback path requires identity up-front:
+    if (!isWebhook && !camperId) {
       const err = new Error("Could not identify camper for this transaction");
       err.statusCode = 400;
       throw err;
@@ -318,33 +450,63 @@ const verifyPayment = async (req, res, next) => {
       throw err;
     }
 
+    // A non-successful charge is DEFINITIVE, not transient — telling
+    // Flutterwave 200 stops pointless retries. The camper simply
+    // wasn't charged, so there is nothing to credit.
     if (
       flwData.status !== "success" ||
       flwData.data?.status !== "successful"
     ) {
+      console.warn(
+        `[YC FLW NOT-SUCCESSFUL] TX: ${transactionId} | ref: ${txRef} | flwStatus: ${flwData.data?.status}`
+      );
+      if (isWebhook) {
+        return res.status(200).json({
+          success: false,
+          message: "Charge was not successful — nothing to credit",
+          actionable: false,
+        });
+      }
       const err = new Error("Flutterwave verification failed");
       err.statusCode = 400;
       throw err;
     }
 
-    // ── WEBHOOK FALLBACK: resolve camper from verified FLW data ──
+    // ── WEBHOOK CAMPER RESOLUTION (full fallback chain) ──
+    // Runs AFTER server-to-server verification, against VERIFIED data.
+    // Order: request-meta → verified-meta → tx-ref (YC-/UBC-) →
+    // email → phone (last-10) → name. The winning strategy is logged.
     if (isWebhook && !camperId) {
-      if (flwData.data?.customer?.email) {
-        const emailMatch = await YCUser.findOne({
-          email: String(flwData.data.customer.email).toLowerCase(),
-        });
-        if (emailMatch) camperId = emailMatch._id.toString();
-      }
-
-      if (!camperId && flwData.data?.customer?.phone_number) {
-        const phoneMatch = await YCUser.findOne({
-          phone: flwData.data.customer.phone_number,
-        });
-        if (phoneMatch) camperId = phoneMatch._id.toString();
+      const resolved = await resolveWebhookCamper({
+        requestMeta,
+        flwData,
+        txRef,
+      });
+      camperId = resolved.camperId;
+      if (camperId) {
+        console.log(
+          `[YC WEBHOOK] Camper resolved via ${resolved.via}: ${camperId} | ref: ${txRef}`
+        );
       }
     }
 
-    if (!mongoose.Types.ObjectId.isValid(camperId)) {
+    if (!camperId || !mongoose.Types.ObjectId.isValid(camperId)) {
+      // Deterministic failure — retrying won't invent an identity.
+      // Answer 200 with needsAttention so ops can reconcile manually
+      // from the logged tx_ref / transaction id, instead of letting
+      // Flutterwave hammer a dead end.
+      console.error(
+        `[YC WEBHOOK] Camper UNRESOLVABLE after all fallbacks | ref: ${txRef} | TX: ${transactionId} | email: ${flwData?.data?.customer?.email || "—"} | phone: ${flwData?.data?.customer?.phone_number || "—"} | name: ${flwData?.data?.customer?.name || "—"}`
+      );
+      if (isWebhook) {
+        return res.status(200).json({
+          success: false,
+          message: "Payment verified but camper could not be identified",
+          needsAttention: true,
+          tx_ref: txRef,
+          transaction_id: transactionId,
+        });
+      }
       const err = new Error("Invalid camper identifier");
       err.statusCode = 400;
       throw err;
@@ -516,7 +678,20 @@ const flutterwaveWebhook = async (req, res, next) => {
   try {
     const signature = req.headers["verif-hash"];
 
-    if (!FLW_SECRET_HASH || signature !== FLW_SECRET_HASH) {
+    // Misconfiguration is the #1 webhook killer: without the secret
+    // hash we reject EVERYTHING with 401 and Flutterwave flags the
+    // endpoint as failing. Log loudly so ops notices immediately.
+    if (!FLW_SECRET_HASH) {
+      console.error(
+        "[YC WEBHOOK] CAMP_FLW_SECRET_HASH is not set — every webhook is being rejected. Set it to the Secret Hash from the Flutterwave dashboard (Settings → Webhooks)."
+      );
+      return res.status(500).json({
+        success: false,
+        message: "Webhook receiver misconfigured",
+      });
+    }
+
+    if (signature !== FLW_SECRET_HASH) {
       console.warn("[YC WEBHOOK] Rejected: invalid verif-hash signature");
       return res.status(401).json({
         success: false,
@@ -524,11 +699,17 @@ const flutterwaveWebhook = async (req, res, next) => {
       });
     }
 
-    console.log(
-      `[YC WEBHOOK] Received: ${
-        req.body?.data?.tx_ref || req.body?.tx_ref || "unknown tx_ref"
-      }`
-    );
+    const event = req.body?.event || "unknown-event";
+    const txRef =
+      req.body?.data?.tx_ref || req.body?.tx_ref || "unknown tx_ref";
+    console.log(`[YC WEBHOOK] Received event=${event} ref=${txRef}`);
+
+    // Flutterwave dashboard "Test" button and non-charge events carry
+    // no creditable transaction — acknowledge without processing.
+    if (event !== "unknown-event" && event !== "charge.completed") {
+      console.log(`[YC WEBHOOK] Ignoring non-charge event: ${event}`);
+      return res.status(200).json({ success: true, message: "Event ignored" });
+    }
 
     // Delegates to the same idempotent verification path.
     return verifyPayment(req, res, next);
