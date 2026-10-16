@@ -1,0 +1,202 @@
+
+$ErrorActionPreference = "Stop"
+
+$REPO = "https://github.com/EmmanuelOjetayo/MIGRATED_UBC_YOUTH_CAMP_PORTAL.git"
+
+Write-Host ""
+Write-Host "============================================" -ForegroundColor Cyan
+Write-Host " UBC YOUTH CAMP BACKEND - GITHUB PUSH" -ForegroundColor Cyan
+Write-Host "============================================" -ForegroundColor Cyan
+Write-Host ""
+
+# 1. Check Git
+if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
+    Write-Host "ERROR: Git is not installed." -ForegroundColor Red
+    Read-Host "Press Enter to return"
+    return
+}
+
+Write-Host "[1/7] Git detected." -ForegroundColor Green
+
+# 2. Initialize Git
+if (-not (Test-Path ".git")) {
+    Write-Host "[2/7] Initializing Git..." -ForegroundColor Yellow
+    git init
+} else {
+    Write-Host "[2/7] Git already initialized." -ForegroundColor Green
+}
+
+# 3. Create .gitignore
+Write-Host "[3/7] Creating .gitignore..." -ForegroundColor Yellow
+
+@"
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Build files
+dist/
+build/
+out/
+
+# Coverage
+coverage/
+.nyc_output/
+
+# Temporary files
+tmp/
+temp/
+.cache/
+
+# Runtime files
+*.pid
+*.pid.lock
+
+# Uploads / storage
+uploads/
+storage/
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+"@ | Set-Content ".gitignore" -Encoding UTF8
+
+Write-Host ".gitignore created successfully." -ForegroundColor Green
+
+# 4. Protect secrets and dependencies
+Write-Host "[4/7] Protecting .env and node_modules..." -ForegroundColor Yellow
+
+git rm -r --cached --ignore-unmatch node_modules 2>$null
+
+Get-ChildItem -Force -File -Filter ".env*" -ErrorAction SilentlyContinue | ForEach-Object {
+    git rm --cached --ignore-unmatch $_.Name 2>$null
+}
+
+Write-Host "node_modules excluded." -ForegroundColor Green
+Write-Host ".env files excluded." -ForegroundColor Green
+
+# 5. Configure GitHub remote
+Write-Host "[5/7] Configuring GitHub repository..." -ForegroundColor Yellow
+
+$remotes = @(git remote)
+
+if ($remotes -contains "origin") {
+    Write-Host "Updating existing origin..." -ForegroundColor Yellow
+    git remote set-url origin $REPO
+} else {
+    Write-Host "Adding GitHub origin..." -ForegroundColor Yellow
+    git remote add origin $REPO
+}
+
+Write-Host "Remote configured:" -ForegroundColor Green
+Write-Host $REPO
+
+git branch -M main
+
+# 6. Stage files
+Write-Host "[6/7] Staging files..." -ForegroundColor Yellow
+
+git add .
+
+Write-Host ""
+Write-Host "Checking staged files..." -ForegroundColor Cyan
+
+$stagedFiles = @(git diff --cached --name-only)
+
+$badNodeModules = @(
+    $stagedFiles | Where-Object {
+        $_ -match '(^|/)node_modules(/|$)'
+    }
+)
+
+$badEnvFiles = @(
+    $stagedFiles | Where-Object {
+        $_ -match '(^|/)\.env($|\.)'
+    }
+)
+
+if ($badNodeModules.Count -gt 0) {
+    Write-Host ""
+    Write-Host "ERROR: node_modules is staged!" -ForegroundColor Red
+    Write-Host "Push cancelled for safety." -ForegroundColor Red
+    git reset
+    Read-Host "Press Enter to return"
+    return
+}
+
+if ($badEnvFiles.Count -gt 0) {
+    Write-Host ""
+    Write-Host "ERROR: .env file is staged!" -ForegroundColor Red
+    Write-Host "Push cancelled for safety." -ForegroundColor Red
+    git reset
+    Read-Host "Press Enter to return"
+    return
+}
+
+Write-Host ""
+Write-Host "SECURITY CHECK PASSED" -ForegroundColor Green
+Write-Host "node_modules: NOT INCLUDED" -ForegroundColor Green
+Write-Host ".env files:   NOT INCLUDED" -ForegroundColor Green
+
+Write-Host ""
+Write-Host "Files going to GitHub:" -ForegroundColor Cyan
+git diff --cached --stat
+
+# 7. Commit and push
+Write-Host ""
+Write-Host "[7/7] Creating initial commit..." -ForegroundColor Yellow
+
+git diff --cached --quiet
+
+if ($LASTEXITCODE -eq 0) {
+    Write-Host "Nothing new to commit." -ForegroundColor Yellow
+} else {
+    git commit -m "Initial to commit"
+}
+
+Write-Host ""
+Write-Host "Pushing to GitHub..." -ForegroundColor Yellow
+
+git push -u origin main
+
+if ($LASTEXITCODE -ne 0) {
+    Write-Host ""
+    Write-Host "Git push failed." -ForegroundColor Red
+    Read-Host "Press Enter to return"
+    return
+}
+
+Write-Host ""
+Write-Host "============================================" -ForegroundColor Green
+Write-Host "          PUSH SUCCESSFUL" -ForegroundColor Green
+Write-Host "============================================" -ForegroundColor Green
+Write-Host ""
+Write-Host "Repository:" -ForegroundColor Cyan
+Write-Host $REPO
+Write-Host ""
+Write-Host "Branch: main"
+Write-Host "node_modules: NOT PUSHED"
+Write-Host ".env: NOT PUSHED"
+Write-Host ""
+
+Read-Host "Press Enter to finish"

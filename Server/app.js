@@ -16,6 +16,17 @@ const YCUserRoute = require("../Routes/YCUserRoute.js");
 const YCPaymentRoute = require("../Routes/YCPaymentRoute.js");
 const YCAdminRoute = require("../Routes/YCAdminRoute.js");
 const YCExpenseRoute = require("../Routes/YCExpenseRoute.js");
+// Offline admin sync is OPT-IN and DISABLED by default, so an existing
+// live CAMP deployment is completely unaffected unless an operator sets
+// ENABLE_OFFLINE_SYNC=true. When disabled the module is not even loaded
+// and no /sync/* route is registered (requests fall through to the 404
+// handler). The PWA also works with it off: it uploads through the
+// existing /admin/meal-scan and /admin/souvenir-scan endpoints.
+const OFFLINE_SYNC_ENABLED =
+  String(process.env.ENABLE_OFFLINE_SYNC || "").toLowerCase() === "true";
+const YCSyncRoute = OFFLINE_SYNC_ENABLED
+  ? require("../Routes/YCSyncRoute.js")
+  : null;
 const YCChatRoute = require("../Routes/YCChatRoute.js");
 const YCFaqRoute = require("../Routes/YCFaqRoute.js");
 const YCReminderRoute = require("../Routes/YCReminderRoute.js");
@@ -134,6 +145,11 @@ app.get("/api/health", (req, res) => {
 app.use("/api/ycuser", YCUserRoute);
 app.use("/api/ycpayment", YCPaymentRoute);
 app.use("/api/ycadmin", YCAdminRoute);
+// Offline sync (canonical + frontend-facing alias below).
+// Only mounted when ENABLE_OFFLINE_SYNC=true.
+if (OFFLINE_SYNC_ENABLED) {
+  app.use("/api/ycadmin/sync", YCSyncRoute);
+}
 // Expenses + financial summary (consumed by the camp-agent admin tools).
 // Mounted after YCAdminRoute: it owns /expenses and /reports/financial-summary.
 app.use("/api/ycadmin", YCExpenseRoute);
@@ -155,6 +171,11 @@ app.use("/api/user", YCUserRoute);
 app.use("/api/payment", YCPaymentRoute);
 app.use("/api/admin", YCAdminRoute);
 app.use("/api/admin", YCExpenseRoute);
+// Offline admin sync alias — the PWA calls /api/admin/sync/*.
+// Only mounted when ENABLE_OFFLINE_SYNC=true.
+if (OFFLINE_SYNC_ENABLED) {
+  app.use("/api/admin/sync", YCSyncRoute);
+}
 
 // Logout is a client-side token discard; the endpoint exists so the
 // CAMP admin UI can call it without erroring.

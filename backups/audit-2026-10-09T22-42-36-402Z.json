@@ -1,0 +1,150 @@
+{
+  "totalAmountPaid": 147561,
+  "totalPayments": 144572,
+  "flagged": [
+    {
+      "_id": "6ac4e78a4ebb36863a50c2ed",
+      "name": "Olaogun Hannah Oluwafisayomi",
+      "amount_paid": 5014,
+      "count": 7,
+      "sum": 9025,
+      "issues": [
+        "B",
+        "D",
+        "D",
+        "D"
+      ],
+      "records": [
+        {
+          "_id": "6ac4e8234ebb36863a50c3f5",
+          "camperId": "6ac4e78a4ebb36863a50c2ed",
+          "type": "ubcyc",
+          "reference": "UBC-69f7364c000fc4c4d127-1780531358138",
+          "amount": 1003,
+          "currency": "NGN",
+          "status": "success",
+          "date": "2026-06-04T00:06:18.630Z",
+          "year": 2026,
+          "legacyAppwriteId": "6a20c17a0027690de747",
+          "createdAt": "2026-10-06T12:22:59.649Z",
+          "updatedAt": "2026-10-07T10:28:57.060Z",
+          "__v": 0
+        },
+        {
+          "_id": "6ac4e8254ebb36863a50c3f7",
+          "camperId": "6ac4e78a4ebb36863a50c2ed",
+          "type": "ubcyc",
+          "reference": "UBC-69f7364c000fc4c4d127-1784099022750",
+          "amount": 1003,
+          "currency": "NGN",
+          "status": "success",
+          "date": "2026-07-15T07:06:04.681Z",
+          "year": 2026,
+          "legacyAppwriteId": "6a57315c002a9aa2a580",
+          "createdAt": "2026-10-06T12:23:01.722Z",
+          "updatedAt": "2026-10-07T10:28:58.002Z",
+          "__v": 0
+        },
+        {
+          "_id": "6ac4e8284ebb36863a50c3fa",
+          "camperId": "6ac4e78a4ebb36863a50c2ed",
+          "type": "ubcyc",
+          "reference": "UBC-69f7364c000fc4c4d127-1785316233948",
+          "amount": 1003,
+          "currency": "NGN",
+          "status": "success",
+          "date": "2026-07-29T09:11:52.898Z",
+          "year": 2026,
+          "legacyAppwriteId": "6a69c3d8003823d006a3",
+          "createdAt": "2026-10-06T12:23:04.316Z",
+          "updatedAt": "2026-10-07T10:28:58.949Z",
+          "__v": 0
+        },
+        {
+          "_id": "6ac4e82c4ebb36863a50c400",
+          "camperId": "6ac4e78a4ebb36863a50c2ed",
+          "type": "ubcyc",
+          "reference": "UBC-69f7364c000fc4c4d127-1786910316780",
+          "amount": 2005,
+          "currency": "NGN",
+          "status": "success",
+          "date": "2026-08-16T20:00:27.323Z",
+          "year": 2026,
+          "legacyAppwriteId": "6a8216db001438192c25",
+          "createdAt": "2026-10-06T12:23:08.641Z",
+          "updatedAt": "2026-10-07T10:29:02.646Z",
+          "__v": 0
+        },
+        {
+          "_id": "6ac4fb91e0f4b8dd4bc94f98",
+          "camperId": "6ac4e78a4ebb36863a50c2ed",
+          "type": "ubcyc",
+          "reference": "UBC-69f7364c000fc4c4d127-1780531358138",
+          "amount": 1003,
+          "currency": "NGN",
+          "status": "success",
+          "date": "2026-06-04T00:06:18.600Z",
+          "year": 2026,
+          "legacyAppwriteId": "6a20c17a002588928203",
+          "createdAt": "2026-10-06T13:45:53.863Z",
+          "updatedAt": "2026-10-07T10:28:56.709Z",
+          "__v": 0
+        },
+        {
+          "_id": "6ac4fb93e0f4b8dd4bc94f99",
+          "camperId": "6ac4e78a4ebb36863a50c2ed",
+          "type": "ubcyc",
+          "reference": "UBC-69f7364c000fc4c4d127-1784099022750",
+          "amount": 1003,
+          "currency": "NGN",
+          "status": "success",
+          "date": "2026-07-15T07:06:04.627Z",
+          "year": 2026,
+          "legacyAppwriteId": "6a57315c002737cdf006",
+          "createdAt": "2026-10-06T13:45:55.062Z",
+          "updatedAt": "2026-10-07T10:28:57.673Z",
+          "__v": 0
+        },
+        {
+          "_id": "6ac4fb97e0f4b8dd4bc94f9a",
+          "camperId": "6ac4e78a4ebb36863a50c2ed",
+          "type": "ubcyc",
+          "reference": "UBC-69f7364c000fc4c4d127-1786910316780",
+          "amount": 2005,
+          "currency": "NGN",
+          "status": "success",
+          "date": "2026-08-16T20:00:27.285Z",
+          "year": 2026,
+          "legacyAppwriteId": "6a8216db0011d4c37e53",
+          "createdAt": "2026-10-06T13:45:59.382Z",
+          "updatedAt": "2026-10-07T10:29:02.299Z",
+          "__v": 0
+        }
+      ]
+    },
+    {
+      "_id": "6ac4e7a24ebb36863a50c31c",
+      "name": "Balogun Joseph",
+      "amount_paid": 2000,
+      "count": 0,
+      "sum": 0,
+      "issues": [
+        "A"
+      ],
+      "records": []
+    },
+    {
+      "_id": "6ac4e7b94ebb36863a50c344",
+      "name": "Oluwaferanmi Ayinde ",
+      "amount_paid": 5000,
+      "count": 0,
+      "sum": 0,
+      "issues": [
+        "A"
+      ],
+      "records": []
+    }
+  ],
+  "orphans": [],
+  "timestamp": "2026-10-09T22:42:36.402Z"
+}

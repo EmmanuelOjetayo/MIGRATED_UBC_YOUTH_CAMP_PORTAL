@@ -1,0 +1,20 @@
+{
+  "removed": [
+    {
+      "originalId": "6ac4fb91e0f4b8dd4bc94f98",
+      "amount": 1003,
+      "reference": "UBC-69f7364c000fc4c4d127-1780531358138"
+    },
+    {
+      "originalId": "6ac4fb93e0f4b8dd4bc94f99",
+      "amount": 1003,
+      "reference": "UBC-69f7364c000fc4c4d127-1784099022750"
+    },
+    {
+      "originalId": "6ac4fb97e0f4b8dd4bc94f9a",
+      "amount": 2005,
+      "reference": "UBC-69f7364c000fc4c4d127-1786910316780"
+    }
+  ],
+  "timestamp": "2026-10-09T22:49:52.129Z"
+}
