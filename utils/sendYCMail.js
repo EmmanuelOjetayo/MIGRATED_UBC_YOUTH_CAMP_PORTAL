@@ -180,55 +180,78 @@ const sendPaymentReminderMail = async ({
   const portal =
     process.env.CAMP_FRONTEND_URL || "http://localhost:5173";
 
-  const htmlContent = layout({
-    kicker: "PAYMENT REMINDER",
-    heading: "A gentle payment reminder",
-    name: safeName,
-    bodyHtml: `
-      <p style="color:#555555; font-size:15px; line-height:1.7;">
-        We hope you're looking forward to <strong>UBC Youth Camp: The Reign 2026</strong>!
-        Here is where your camp fee stands right now:
+
+const htmlContent = layout({
+  kicker: "🚨 URGENT PAYMENT ALERT",
+  heading: "LESS THAN 50 HOURS TO CAMP!",
+  name: safeName,
+  bodyHtml: `
+    <div style="background:#fff1f1; border:1px solid #f2c4c4;
+                border-radius:12px; padding:18px; margin-bottom:20px;">
+      <p style="color:#b42318; font-size:16px; font-weight:900;
+                line-height:1.6; text-align:center; margin:0 0 10px;">
+        🚨 ATTENTION, CAMPERS! THE COUNTDOWN IS ON! 🚨
       </p>
-
-      <div style="background:#f8f6f6; border:1px solid #ece7e7; border-radius:12px;
-                  padding:18px 20px; margin:20px 0;">
-        <p style="margin:0 0 6px; color:#722F37; font-size:13px; font-weight:bold;">
-          ${pct}% COMPLETE
-        </p>
-        <p style="margin:0 0 4px; color:#333333; font-size:15px;">
-          Paid so far: <strong>${naira(paid)}</strong> of ${naira(goal)}
-        </p>
-        <p style="margin:0; color:#722F37; font-size:16px; font-weight:bold;">
-          Balance remaining: ${naira(owed)}
-        </p>
-      </div>
-
-      <p style="color:#555555; font-size:15px; line-height:1.7;">
-        Whenever you're ready, you can complete your payment from your camp
-        portal using card, bank account, USSD or bank transfer.
+      <p style="color:#7a1f1f; font-size:15px; line-height:1.7;
+                text-align:center; margin:0;">
+        <strong>UBC YOUTH CAMP: THE REIGN 2026</strong> IS JUST
+        AROUND THE CORNER, WITH LESS THAN 50 HOURS TO GO!
+        THE DEADLINE IS FAST APPROACHING, AND NOW IS THE TIME TO ACT.
       </p>
+    </div>
 
-      <div style="text-align:center; margin:30px 0;">
-        <a href="${escapeHtml(portal)}/dashboard"
-           style="display:inline-block; background:#722F37; color:#ffffff;
-                  padding:15px 32px; border-radius:10px; text-decoration:none;
-                  font-size:14px; font-weight:bold;">
-          COMPLETE MY PAYMENT
-        </a>
-      </div>
+    <p style="color:#555555; font-size:15px; line-height:1.7;">
+      Dear <strong>${escapeHtml(safeName)}</strong>, we need your urgent
+      attention to your camp payment. Please check your outstanding balance
+      below and make arrangements to complete your payment as soon as possible.
+    </p>
 
-      ${
-        note
-          ? noteBox(`<strong>A note from the organisers:</strong> ${escapeHtml(note)}`)
-          : ""
-      }
-
-      <p style="color:#777777; font-size:13px; line-height:1.6;">
-        If you have already paid recently, please ignore this message — your
-        portal balance is updated the moment your payment is confirmed.
+    <div style="background:#f8f6f6; border:1px solid #ece7e7;
+                border-radius:12px; padding:18px 20px; margin:20px 0;">
+      <p style="margin:0 0 6px; color:#722F37; font-size:13px; font-weight:bold;">
+        ${pct}% COMPLETE
       </p>
-    `,
-  });
+      <p style="margin:0 0 4px; color:#333333; font-size:15px;">
+        Paid so far: <strong>${naira(paid)}</strong> of ${naira(goal)}
+      </p>
+      <p style="margin:0; color:#722F37; font-size:16px; font-weight:bold;">
+        Balance remaining: ${naira(owed)}
+      </p>
+    </div>
+
+    <p style="color:#555555; font-size:15px; line-height:1.7;">
+      <strong>PLEASE MAKE YOUR PAYMENT NOW.</strong> Do not wait until
+      the last minute. You can complete your payment through your camp
+      portal using card, bank account, USSD or bank transfer.
+    </p>
+
+    <div style="text-align:center; margin:30px 0;">
+      <a href="${escapeHtml(portal)}/dashboard"
+         style="display:inline-block; background:#722F37; color:#ffffff;
+                padding:15px 32px; border-radius:10px; text-decoration:none;
+                font-size:14px; font-weight:bold;">
+        PAY MY BALANCE NOW
+      </a>
+    </div>
+
+    <p style="color:#b42318; font-size:15px; font-weight:bold;
+              text-align:center; line-height:1.7;">
+      ⏰ LESS THAN 50 HOURS LEFT — DON'T DELAY!
+    </p>
+
+    ${
+      note
+        ? noteBox(`<strong>A note from the organisers:</strong> ${escapeHtml(note)}`)
+        : ""
+    }
+
+    <p style="color:#777777; font-size:13px; line-height:1.6;">
+      If you have already paid recently, please ignore this reminder.
+      Your portal balance will update once your payment is confirmed.
+      If you encounter any payment issues, please contact the camp organisers.
+    </p>
+  `,
+});
 
   return sendMail({
     to: email,
