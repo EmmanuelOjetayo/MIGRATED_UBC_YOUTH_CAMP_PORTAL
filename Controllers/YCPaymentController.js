@@ -14,10 +14,6 @@ const TEAMS = [
   "KETER",
   "KAVOD",
   "KISSEH",
-  "KLIRONOMOS",
-  "ARMON",
-  "SHARBIT",
-  "MALCHUT",
   "MEMSHALAH",
 ];
 
