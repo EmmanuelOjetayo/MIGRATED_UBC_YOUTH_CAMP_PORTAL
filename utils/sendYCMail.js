@@ -182,77 +182,108 @@ const sendPaymentReminderMail = async ({
 
 
 const htmlContent = layout({
-  kicker: "🚨 URGENT PAYMENT ALERT",
-  heading: "LESS THAN 50 HOURS TO CAMP!",
+  kicker: "🚌 IT'S CAMP DAY!",
+  heading: "TODAY IS THE DAY — THE REIGN 2026!",
   name: safeName,
   bodyHtml: `
     <div style="background:#fff1f1; border:1px solid #f2c4c4;
-                border-radius:12px; padding:18px; margin-bottom:20px;">
-      <p style="color:#b42318; font-size:16px; font-weight:900;
+                border-radius:12px; padding:20px; margin-bottom:20px;">
+      <p style="color:#b42318; font-size:18px; font-weight:900;
                 line-height:1.6; text-align:center; margin:0 0 10px;">
-        🚨 ATTENTION, CAMPERS! THE COUNTDOWN IS ON! 🚨
+        🚨 TODAY IS YOUTH CAMP DAY! 🚨
       </p>
-      <p style="color:#7a1f1f; font-size:15px; line-height:1.7;
+      <p style="color:#7a1f1f; font-size:15px; line-height:1.8;
                 text-align:center; margin:0;">
-        <strong>UBC YOUTH CAMP: THE REIGN 2026</strong> IS JUST
-        AROUND THE CORNER, WITH LESS THAN 50 HOURS TO GO!
-        THE DEADLINE IS FAST APPROACHING, AND NOW IS THE TIME TO ACT.
+        The wait is over! <strong>UBC YOUTH CAMP: THE REIGN 2026</strong>
+        is happening TODAY! It is finally D-DAY, and we are excited
+        to begin this amazing camp experience together.
       </p>
     </div>
 
-    <p style="color:#555555; font-size:15px; line-height:1.7;">
-      Dear <strong>${escapeHtml(safeName)}</strong>, we need your urgent
-      attention to your camp payment. Please check your outstanding balance
-      below and make arrangements to complete your payment as soon as possible.
+    <p style="color:#555555; font-size:15px; line-height:1.8;">
+      Dear <strong>${escapeHtml(safeName)}</strong>,
+      today is the day we have all been waiting for!
+      This is a final and important reminder that
+      <strong>everyone is expected to be present and ready for departure.</strong>
+      Please make every necessary arrangement to arrive on time.
     </p>
+
+    <div style="background:#fff8e8; border:1px solid #f0d79b;
+                border-radius:12px; padding:20px; margin:20px 0;">
+      <p style="margin:0 0 12px; color:#8a4b08; font-size:17px;
+                font-weight:900; text-align:center;">
+        🚌 BUS DEPARTURE: 9:00 AM SHARP!
+      </p>
+      <p style="margin:0; color:#664214; font-size:15px;
+                line-height:1.8; text-align:center;">
+        Please arrive early and be ready before departure.
+        <strong>The bus will move at 9:00 AM.</strong>
+        Do not plan to arrive at the last minute.
+        Everyone is expected to be there!
+      </p>
+    </div>
 
     <div style="background:#f8f6f6; border:1px solid #ece7e7;
                 border-radius:12px; padding:18px 20px; margin:20px 0;">
-      <p style="margin:0 0 6px; color:#722F37; font-size:13px; font-weight:bold;">
-        ${pct}% COMPLETE
+      <p style="margin:0 0 12px; color:#722F37; font-size:16px;
+                font-weight:900;">
+        💳 IMPORTANT PAYMENT INFORMATION
       </p>
-      <p style="margin:0 0 4px; color:#333333; font-size:15px;">
-        Paid so far: <strong>${naira(paid)}</strong> of ${naira(goal)}
+      <p style="margin:0 0 12px; color:#333333; font-size:15px;
+                line-height:1.8;">
+        If you have not completed your camp payment and intend
+        to make a <strong>partial payment</strong>, please make
+        your payment <strong>ON-SITE at camp</strong>.
       </p>
-      <p style="margin:0; color:#722F37; font-size:16px; font-weight:bold;">
-        Balance remaining: ${naira(owed)}
+      <p style="margin:0; color:#b42318; font-size:15px;
+                font-weight:bold; line-height:1.8;">
+        Please do NOT make partial payments through the online portal.
+        Kindly settle your partial payment with the organisers on arrival.
       </p>
     </div>
 
-    <p style="color:#555555; font-size:15px; line-height:1.7;">
-      <strong>PLEASE MAKE YOUR PAYMENT NOW.</strong> Do not wait until
-      the last minute. You can complete your payment through your camp
-      portal using card, bank account, USSD or bank transfer.
+    <p style="color:#555555; font-size:15px; line-height:1.8;">
+      If you have already completed your payment, thank you!
+      Simply come prepared and be ready to enjoy camp.
+      If you still have an outstanding balance, please make the necessary
+      arrangements to settle it on-site if you are paying partially.
     </p>
 
-    <div style="text-align:center; margin:30px 0;">
-      <a href="${escapeHtml(portal)}/dashboard"
-         style="display:inline-block; background:#722F37; color:#ffffff;
-                padding:15px 32px; border-radius:10px; text-decoration:none;
-                font-size:14px; font-weight:bold;">
-        PAY MY BALANCE NOW
-      </a>
+    <div style="text-align:center; margin:28px 0; padding:18px;
+                background:#722F37; border-radius:12px;">
+      <p style="color:#ffffff; font-size:17px; font-weight:900;
+                line-height:1.7; margin:0 0 8px;">
+        🎉 IT'S D-DAY! 🎉
+      </p>
+      <p style="color:#ffffff; font-size:15px; line-height:1.8; margin:0;">
+        Be punctual. Be prepared. Be present.
+        <br/>
+        <strong>Bus leaves at 9:00 AM sharp!</strong>
+      </p>
     </div>
-
-    <p style="color:#b42318; font-size:15px; font-weight:bold;
-              text-align:center; line-height:1.7;">
-      ⏰ LESS THAN 50 HOURS LEFT — DON'T DELAY!
-    </p>
 
     ${
       note
-        ? noteBox(`<strong>A note from the organisers:</strong> ${escapeHtml(note)}`)
+        ? noteBox(
+            `<strong>A note from the organisers:</strong> ${escapeHtml(note)}`
+          )
         : ""
     }
 
-    <p style="color:#777777; font-size:13px; line-height:1.6;">
-      If you have already paid recently, please ignore this reminder.
-      Your portal balance will update once your payment is confirmed.
-      If you encounter any payment issues, please contact the camp organisers.
+    <p style="color:#777777; font-size:13px; line-height:1.7;">
+      If you have any questions or need assistance, please contact
+      the camp organisers immediately. We look forward to seeing everyone
+      and having a wonderful camp experience together!
+    </p>
+
+    <p style="color:#722F37; font-size:15px; font-weight:bold;
+              text-align:center; line-height:1.7;">
+      See you at camp! ❤️
+      <br/>
+      UBC Youth Camp: The Reign 2026
     </p>
   `,
 });
-
   return sendMail({
     to: email,
     name,
